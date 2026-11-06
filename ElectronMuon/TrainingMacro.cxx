@@ -33,9 +33,14 @@ constexpr double kRad2Deg      = 180. / TMath::Pi();
 
 constexpr double kMaxTrackEta = 2.5;
 constexpr double kMinTrackPt  = 1.0;   // GeV
+constexpr double kMaxD0       = 1.0;   // jednostka taka jak w gałęzi track_d0 (zwykle mm)
 constexpr double kMaxPairPt   = 0.2;   // GeV
 constexpr double kMaxPairMass = 3.5;   // GeV
 constexpr double kMinPairMass = 2.0;   // GeV
+
+// selekcja topoclusterów
+constexpr double kMaxClusterEta = 4.9;
+constexpr double kMinClusterPt  = 0.1; // GeV
 
 constexpr double kMatchDeltaR = 0.8;   // track <-> topocluster matching
 constexpr int    kLogEvery    = 300000;
@@ -50,6 +55,7 @@ struct Sample {
 };
 
 const std::vector<Sample> kSamples = {
+    //{"../Data/data23_2trk_moreTCvars.root",     "Data",       true},
     {"../Data/mc_jpsi_ee.root",         "MCElectronFull",       false},
     {"../Data/mc_jpsi_mumu.root",       "MCMuonFull",           true },
     {"../Data/mc_ee_background.root",   "MCElectronBackground", false},
@@ -60,7 +66,6 @@ const std::vector<Sample> kSamples = {
 // ML tree row
 // ----------------------------------------------------------------------------
 struct MLRow {
-    Float_t pixelHits = 0, trtHits = 0, pixeldEdX = 0, sctHits = 0;
     Float_t fVariable = 0, emProb = 0, lambda = 0, lambda2 = 0, radius = 0;
     Float_t etaRange = 0;
     Bool_t  isMuon = kFALSE;
@@ -68,10 +73,6 @@ struct MLRow {
 
 void BookMLBranches(TTree& t, MLRow& r)
 {
-    t.Branch("track_PixelHits", &r.pixelHits, "track_PixelHits/F");
-    t.Branch("track_TRTHits",   &r.trtHits,   "track_TRTHits/F");
-    t.Branch("track_PixeldEdX", &r.pixeldEdX, "track_PixeldEdX/F");
-    t.Branch("track_SCTHits",   &r.sctHits,   "track_SCTHits/F");
     t.Branch("Cal_FVariable",   &r.fVariable, "Cal_FVariable/F");
     t.Branch("Cal_EMprop",      &r.emProb,    "Cal_EMprop/F");
     t.Branch("Cal_Lambda",      &r.lambda,    "Cal_Lambda/F");
@@ -96,15 +97,17 @@ struct ClusterVars {
 // Branch readers
 // ----------------------------------------------------------------------------
 struct TrackReaders {
-    TTreeReaderArray<unsigned int> n;
-    TTreeReaderArray<float>        eta, phi, pt, pixeldEdX, pixelHits, sctHits, trtHits;
-    TTreeReaderArray<int>          charge;
+    TTreeReaderArray<float> eta, phi, pt, pixeldEdX, pixelHits, sctHits, trtHits, d0;
+    TTreeReaderArray<int>   charge;
+    TTreeReaderArray<bool>  TriggerPass, Loose;
 
     explicit TrackReaders(TTreeReader& r)
-        : n(r, "track_n"), eta(r, "track_eta"), phi(r, "track_phi"), pt(r, "track_pt"),
+        : eta(r, "track_eta"), phi(r, "track_phi"), pt(r, "track_pt"),
           pixeldEdX(r, "track_PixeldEdX"), pixelHits(r, "track_PixelHits"),
-          sctHits(r, "track_SCTHits"), trtHits(r, "track_TRTHits"),
-          charge(r, "track_charge") {}
+          sctHits(r, "track_SCTHits"), trtHits(r, "track_TRTHits"), d0(r, "track_d0"),
+          charge(r, "track_charge"),
+          TriggerPass(r, "passed_HLT_mb_excl_1trk5_pt1_hi_FgapAC5_L1TRT_VTE20"),
+          Loose(r, "track_is_LoosePrimary") {}
 };
 
 // ----------------------------------------------------------------------------
@@ -177,12 +180,11 @@ struct Hists {
 };
 
 struct TopoReaders {
-    TTreeReaderArray<unsigned int> n;
-    TTreeReaderArray<float>        eta, phi, pt, lambda, lambda2, r2, emProb;
-    TTreeReaderArray<bool>         pass;
+    TTreeReaderArray<float> eta, phi, pt, lambda, lambda2, r2, emProb;
+    TTreeReaderArray<bool> pass;
 
     explicit TopoReaders(TTreeReader& r)
-        : n(r, "topoclus_n"), eta(r, "topo_cluster_eta"), phi(r, "topo_cluster_phi"),
+        : eta(r, "topo_cluster_eta"), phi(r, "topo_cluster_phi"),
           pt(r, "topo_cluster_pt"), lambda(r, "topo_cluster_lambda"),
           lambda2(r, "topo_cluster_lambda2"), r2(r, "topo_cluster_r2"),
           emProb(r, "topo_cluster_EM_prob"), pass(r, "topo_cluster_pass_sig_cut") {}
@@ -194,13 +196,16 @@ struct TopoReaders {
         ClusterVars c;
         int best = -1;
 
-        for (int i = 0; i < int(n[0]); ++i) {
+        for (int i = 0; i < int(pt.GetSize()); ++i) {
+            if (TMath::Abs(eta[i]) >= kMaxClusterEta || pt[i] <= kMinClusterPt) continue;
+
             const double dPhi = TMath::Abs(TVector2::Phi_mpi_pi(lep.Phi() - phi[i]));
             const double dEta = lep.Eta() - eta[i];
+            const double dR   = TMath::Sqrt(dEta * dEta + dPhi * dPhi);
             h.hDEtaDPhi->Fill(dEta, dPhi);
-            h.hDR->Fill(TMath::Sqrt(dEta * dEta + dPhi * dPhi));
+            h.hDR->Fill(dR);
 
-            if (TMath::Sqrt(dEta * dEta + dPhi * dPhi) >= kMatchDeltaR || !pass[i]) continue;
+            if (dR >= kMatchDeltaR || !pass[i]) continue;
 
             ++c.nMatched;
             if (pt[i] > c.pt) { c.pt = pt[i]; best = i; }
@@ -252,7 +257,7 @@ void ProcessSample(const Sample& s)
 
     // For muons, reject leptons without a matched cluster.
     // This selection was previously commented out for electrons, so it remains disabled.
-    const bool requireCluster = s.isMuon;
+    const bool requireCluster = true;
 
     long nEvents = 0, nLeptons = 0;
 
@@ -261,18 +266,23 @@ void ProcessSample(const Sample& s)
             std::cout << "Processing " << nEvents << " event..." << std::endl;
 
         // --- track selection ---
-        if (trk.n[0] != 2) continue;
+        //if (!trk.TriggerPass[0]) continue; //For now trigger in MC are disabled
+
+        int idx[2] = {-1, -1};
+        int nSel = 0;
+        for (int i = 0; i < int(trk.pt.GetSize()); ++i) {
+            if (TMath::Abs(trk.eta[i]) >= kMaxTrackEta || trk.pt[i] <= kMinTrackPt) continue;
+            if (TMath::Abs(trk.d0[i]) >= kMaxD0 || !trk.Loose[i]) continue;
+            if (nSel < 2) idx[nSel] = i;
+            ++nSel;
+        }
+        if (nSel != 2) continue;                                   // dokładnie 2 tracki po selekcji
+        if (trk.charge[idx[0]] == trk.charge[idx[1]]) continue;    // przeciwne ładunki
 
         TLorentzVector p4[2];
-        bool ok = true;
-        for (int i = 0; i < 2; ++i) {
-            if (TMath::Abs(trk.eta[i]) < kMaxTrackEta && trk.pt[i] > kMinTrackPt)
-                p4[i].SetPtEtaPhiM(trk.pt[i], trk.eta[i], trk.phi[i], mass);
-            else { ok = false; break; }
-        }
-        if (!ok || trk.charge[0] == trk.charge[1]) continue;
+        for (int k = 0; k < 2; ++k) p4[k].SetPtEtaPhiM(trk.pt[idx[k]], trk.eta[idx[k]], trk.phi[idx[k]], mass);
 
-        // --- pair selection ---
+        // --- pair selection --- (bez zmian)
         const TLorentzVector pair = p4[0] + p4[1];
         if (pair.Perp() >= kMaxPairPt || pair.M() >= kMaxPairMass || pair.M() < kMinPairMass) continue;
 
@@ -284,11 +294,12 @@ void ProcessSample(const Sample& s)
         // --- leptons ---
         for (int i = 0; i < 2; ++i) {
             const TLorentzVector& lep = p4[i];
+            const int t = idx[i];
 
-            h.pixeldEdX->Fill(trk.pixeldEdX[i]);
-            h.pixelHits->Fill(trk.pixelHits[i]);
-            h.sctHits->Fill(trk.sctHits[i]);
-            h.trtHits->Fill(trk.trtHits[i]);
+            h.pixeldEdX->Fill(trk.pixeldEdX[t]);
+            h.pixelHits->Fill(trk.pixelHits[t]);
+            h.sctHits->Fill(trk.sctHits[t]);
+            h.trtHits->Fill(trk.trtHits[t]);
             h.lepE->Fill(lep.E());
             h.lepEta->Fill(lep.Eta());
             h.lepPt->Fill(lep.Pt());
@@ -298,10 +309,6 @@ void ProcessSample(const Sample& s)
             h.FillCluster(c);
             if (requireCluster && !c.found) continue;
 
-            row.pixelHits = trk.pixelHits[i];
-            row.trtHits   = trk.trtHits[i];
-            row.pixeldEdX = trk.pixeldEdX[i];
-            row.sctHits   = trk.sctHits[i];
             row.fVariable = c.f;
             row.emProb    = c.em;
             row.lambda    = c.lambda;

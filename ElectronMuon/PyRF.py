@@ -43,11 +43,7 @@ eta_values = {
     3: '1.5-2.5'
 }
                         
-features_list = [
-    'track_PixelHits', 'track_TRTHits', 'track_SCTHits',
-    'track_PixeldEdX', 'Cal_FVariable', 'Cal_EMprop',
-    'Cal_Lambda', 'Cal_Lambda2', 'Cal_Radius'
-]
+features_list = ['Cal_FVariable', 'Cal_EMprop','Cal_Lambda', 'Cal_Lambda2', 'Cal_Radius']
 
 # ========================
 # Splitting dataset to train and test 
@@ -76,7 +72,7 @@ rf.fit(X_train, y_train)
 #========================
 
 
-initial_type = [('float_input', FloatTensorType([None, 9]))]
+initial_type = [('float_input', FloatTensorType([None, 5]))]
 onnx_model = convert_sklearn(rf, initial_types=initial_type, target_opset=17, options={type(rf): {"zipmap": False}})
 onnx_model.ir_version = 9
 with open("../ONNX/RFMuonElectron.onnx", "wb") as fo:
