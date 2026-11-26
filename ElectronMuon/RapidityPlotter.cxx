@@ -58,7 +58,7 @@ const std::string kDir      = "Plots/TestingControl/";
 const std::string kFileData = kDir + "HistogramsTrueData.root";
 const std::string kFileMCee = kDir + "HistogramsMC_ee.root";
 const std::string kFileMCmm = kDir + "HistogramsMC_mumu.root";
-const std::string kFilePion = kDir + "Histograms_SS_TrueData.root";
+const std::string kFilePion = kDir + "HistogramsMC_pipi.root";
 
 const std::string kProfSuffix = "_prof_y";
 const int         kMinEntries = 10;      // bins with fewer entries are not drawn
@@ -471,7 +471,7 @@ void RapidityPlotter()
       {fData, "kinematics/rapidity_mid", "Data",                         kColData, 20, "", all},
       {fMCee, "kinematics/rapidity_mid", "MC J/#psi #rightarrow ee",     kColEl,   21, "", all},
       {fMCmm, "kinematics/rapidity_mid", "MC J/#psi #rightarrow #mu#mu", kColMu,   22, "", all},
-      {fPion, "kinematics/rapidity_mid", "Pions",                        kColPion, 23, "", all},
+      {fPion, "kinematics/rapidity_mid", "MC Pions",                        kColPion, 23, "", all},
    };
    CompareDist(distMidEntries, "rapidity_mid_0.30_0.70");
 

@@ -38,13 +38,8 @@ const std::string kDir      = "Plots/TestingControl/";
 const std::string kFileData = kDir + "HistogramsTrueData.root";
 const std::string kFileMCee = kDir + "HistogramsMC_ee.root";
 const std::string kFileMCmm = kDir + "HistogramsMC_mumu.root";
-const std::string kFilePion = kDir + "Histograms_SS_TrueData.root";
+const std::string kFilePion = kDir + "HistogramsMC_pipi.root";
 
-// Where the cluster histograms live in the pion file.
-// Default: "clusters_all/" without prefix (all tracks, no e/mu classification).
-// If the pion file was made with the e/mu split, use e.g. "electron/" + "clu_".
-const std::string kPionDir    = "clusters_all/";
-const std::string kPionPrefix = "";
 
 const Color_t kColData   = kBlack;
 const Color_t kColDataMu = kBlack;
@@ -73,6 +68,7 @@ struct Entry {              // one curve in the plot
 
 // Order = order of the classifier inputs {f, emProb, lambda, lambda2, r2}
 const std::vector<Feature> kFeatures = {
+   {"count",       "Number of Clusters in Cone", true},
    {"f",       "F = p_{T}^{cl} / p_{T}^{trk}", false},
    {"emProb",  "Cluster EM probability",       true},
    {"lambda",  "Cluster #lambda / 10^{3}",     false},
@@ -270,7 +266,7 @@ void ShapePlotter()
       {fData, "muon/clu_",     "Data muons",                    kColDataMu, 24, true},
       {fMCee, "electron/clu_", "MC J/#psi #rightarrow ee",      kColEl,     21, false},
       {fMCmm, "muon/clu_",     "MC J/#psi #rightarrow #mu#mu",  kColMu,     22, false},
-      {fPion, kPionDir + kPionPrefix, "Pions",                  kColPion,   23, false},
+      {fPion, "clusters_all/", "Pions",                  kColPion,   23, false},
    };
 
    for (const auto& v : kFeatures) Compare(v, entries);

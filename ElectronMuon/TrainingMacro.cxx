@@ -150,7 +150,7 @@ struct Hists {
         sctHits   = book("sctHits",   "SCT hits;N_{SCT};Tracks",     12, 2.5, 14.5);
         pixeldEdX = book("pixeldEdX", "Pixel dE/dx;dE/dx;Tracks",   100, 0, 2);
 
-        nTopo   = book("nTopo",   "Number of topoclusters;N;Leptons",           7, -0.5, 6.5);
+        nTopo   = book("nTopo",   "Number of topoclusters;N;Leptons",           15, -0.5, 14.5);
         perp    = book("perp",    "Cluster p_{T};p_{T};Leptons",              100, 0, 3.5);
         fVar    = book("fVar",    "F variable;F;Leptons",                     100, 0, 4);
         emProb  = book("emProb",  "EM calorimeter probability;P_{EM};Leptons", 40, -0.1, 1.1);

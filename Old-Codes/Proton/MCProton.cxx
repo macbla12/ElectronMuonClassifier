@@ -26,7 +26,7 @@ void MCProton()
     double DEG=180/TMath::Pi();
 
     
-    TString File="../Data/starlight_jpsiall_pptruth.root";
+    TString File="../../Data/starlight_jpsiall_pptruth.root";
     string name="MCProton";
 
     //========================
@@ -71,7 +71,7 @@ void MCProton()
     Ort::SessionOptions session_options;
     session_options.SetIntraOpNumThreads(1);
 
-    Ort::Session session(env, "../ONNX/RFMuonElectron.onnx", session_options);
+    Ort::Session session(env, "../../ONNX/RFMuonElectron.onnx", session_options);
     Ort::AllocatorWithDefaultOptions allocator;
 
     auto input_name_alloc  = session.GetInputNameAllocated(0, allocator);
@@ -249,8 +249,8 @@ void MCProton()
                     PixelSCTHits=TrackSCTHits[i];
                     if(FVariable==-1) continue;              
 
-                    std::vector<float> input = {PixelHits, PixelTRTHits, PixelSCTHits, PixeldEdX, FVariable, EMprop, Lambda, Lambda2, Radius};
-                    std::vector<int64_t> input_shape = {1, 9};
+                    std::vector<float> input = {FVariable, EMprop, Lambda, Lambda2, Radius};
+                    std::vector<int64_t> input_shape = {1, 5};
                     Ort::Value input_tensor = Ort::Value::CreateTensor<float>(allocator.GetInfo(),input.data(),input.size(),input_shape.data(),input_shape.size());
                     auto output_tensors = session.Run(Ort::RunOptions{nullptr}, &input_name, &input_tensor, 1, output_names, 2);
                     float* prob_ptr = output_tensors[1].GetTensorMutableData<float>();

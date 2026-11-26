@@ -120,7 +120,7 @@ struct ClusterHists {
 
    void Book(TDirectory* d, const std::string& prefix = "")
    {
-      count   = ::Book(d, prefix + "count",   "Matched clusters", 7, -0.5, 6.5);
+      count   = ::Book(d, prefix + "count",   "Matched clusters", 15, -0.5, 14.5);
       pt      = ::Book(d, prefix + "pt",      "Cluster p_{T}",    100, 0, 3.5);
       f       = ::Book(d, prefix + "f",       "F = p_{T}^{cl}/p_{T}^{trk}", 100, 0, 4);
       em      = ::Book(d, prefix + "emProb",  "EM probability",   40, -0.1, 1.1);
@@ -281,7 +281,7 @@ struct LeptonHists {
       trtHits   = ::Book(d, "trtHits",   "TRTHits",            51, -1, 50);
       sctHits   = ::Book(d, "sctHits",   "SCTHits",            12, 2.5, 14.5);
       pixeldEdX = ::Book(d, "pixeldEdX", "PixeldEdX",          100, 0, 2);
-      dimass    = ::Book(d, "dimass",    "Lepton pair mass",   50, 2.5, 3.5);
+      dimass    = ::Book(d, "dimass",    "Lepton pair mass",   50, 2.0, 3.5);
       for (int b = 0; b < cfg::kNYBins; ++b)
          dimassY[b] = ::Book(d, Form("dimass_y%d", b),
                              Form("Lepton pair mass: |y| %g - %g", b * 0.5, b * 0.5 + 0.5),
@@ -348,8 +348,8 @@ inline int YBin(double y)
 void TestingMacro()
 {
     //const std::string name = "TrueData"; const std::string inputFile = "../Data/data23_2trk_moreTCvars.root";
-    //const std::string name = "MC_ee";    const std::string inputFile = "../Data/mc_jpsi_ee.root";
-    const std::string name = "MC_mumu";    const std::string inputFile = "../Data/mc_jpsi_mumu.root";
+    const std::string name = "MC_ee";    const std::string inputFile = "../Data/mc_jpsi_ee.root";
+    //const std::string name = "MC_mumu";    const std::string inputFile = "../Data/mc_jpsi_mumu.root";
     gROOT->SetBatch(kTRUE);
     gErrorIgnoreLevel = kError;
 
@@ -376,9 +376,6 @@ void TestingMacro()
     TH1D* hDeltaPhi  = Book(dKin, "deltaPhi", "#Delta#phi [deg]",                   40, 160, 180);
     TH1D* hTrackD0   = Book(dKin, "track_d0", "Selected track d_{0};d_{0};Tracks",  100, -cfg::kMaxD0, cfg::kMaxD0);
     TH1D* hYMid = Book(dKin, "rapidity_mid", "Pair rapidity, 0.30<score<0.70", 50, -3, 3);
-
-
-
 
     TH1D* hResponse     = Book(dClf, "response",          "RF response to experimental data", 50, 0, 1);
     TH1D* hResponseMean = Book(dClf, "response_mean",     "RF mean response to experimental data", 50, 0, 1);
@@ -410,7 +407,8 @@ void TestingMacro()
     rap[kMuon    ].Book(dRap, "muon_");
 
    // ---------------- Classifier ----------------
-    RFClassifier classifier("../ONNX/RFMuonElectron.onnx");
+    //RFClassifier classifier("../ONNX/RFMuonElectron.onnx");
+    RFClassifier classifier("../ONNX/XGBMuonElectron.onnx");
 
    // ---------------- Input ----------------
     TChain chain("G2TauTree");
